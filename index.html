@@ -2,15 +2,53 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <title>Sneaky Lamassu timer</title>
     <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background: #d5d5d5;
+      }
+      h1 {
+        display: block;
+        margin: 20px 0;
+        padding: 20px;
+        box-sizing: border-box;
+        width: 100%;
+        background-color: #2c99ce;
+        color: white;
+        font-weight: bold;
+        font-family: sans-serif;
+      }
+      main {
+        padding: 20px;
+      }
+      #timerDisplay {
+        margin: 10px 0;
+        font-size: 30px;
+        font-family: sans-serif;
+      }
+
+      .spacer {
+        height: 60px;
       }
     </style>
   </head>
   <body>
-    <button id="btnStart">Make it start</button>
-    <button id="btnStop">Make it stop</button>
+    <h1>Sneaky Lamassu timer</h1>
+    <main>
+      <input id="timerInput" value="00:05" />
+      <button id="btnStart">Start</button>
+      <button id="btnStop">Stop</button>
+      <div id="timerDisplay">--:--:--</div>
+
+      <div class="spacer"></div>
+      <button id="btnPleaseStop">Please make it stop</button> (or refresh the
+      page)
+    </main>
   </body>
 
   <script>
@@ -46,13 +84,61 @@
     let lastPicked = 0; // index of last audio played, to avoid back-to-back plays
 
     const INTERVAL = 650;
-    let intervalId = null;
+    let audioIntervalId = null;
+    let tickTimeoutId = null;
 
-    function start() {
-      if (intervalId != null) {
-        clearInterval(intervalId);
+    let totalSeconds = null;
+    let startTime = null;
+
+    function clearTimer() {
+      if (tickTimeoutId != null) {
+        clearTimeout(tickTimeoutId);
       }
-      intervalId = setInterval(() => {
+      timerDisplay.innerText = "--:--:--";
+      tickTimeoutId = null;
+      startTime = null;
+    }
+
+    function tick() {
+      if (totalSeconds == null) {
+        return;
+      }
+      const elapsed = (Date.now() - startTime) / 1000;
+      const fullSeconds = Math.round(totalSeconds - elapsed);
+      const seconds = Math.round(fullSeconds) % 60;
+      const fullMinutes = Math.floor(fullSeconds / 60);
+      const minutes = fullMinutes % 60;
+      const hours = Math.floor(fullMinutes / 60);
+      const display = [hours, minutes, seconds]
+        .map((n) => ("0" + n.toFixed(0)).slice(-2))
+        .join(":");
+      timerDisplay.innerText = display;
+      if (elapsed >= totalSeconds) {
+        startAudio();
+      } else {
+        tickTimeoutId = window.setTimeout(() => tick(), 1000);
+      }
+    }
+    function start() {
+      stop();
+      // Accept `00:05` or `0h0m5s` permissively.
+      const components = Array.from(
+        timerInput.value.trim().matchAll(/([0-9]+)/g)
+      ).map((group) => Number(group[0]));
+      totalSeconds = components.reduce((acc, t) => acc * 60 + t, 0);
+      startTime = Date.now();
+      tick();
+    }
+    function stop() {
+      clearTimer();
+      stopAudio();
+    }
+
+    function startAudio() {
+      if (audioIntervalId != null) {
+        clearInterval(audioIntervalId);
+      }
+      audioIntervalId = setInterval(() => {
         let i = Math.floor(Math.random() * audios.length);
         if (i === lastPicked) {
           i = (i + 1) % audios.length;
@@ -61,13 +147,15 @@
         audios[i].play();
       }, INTERVAL);
     }
-    function stop() {
-      clearInterval(intervalId);
+    function stopAudio() {
+      clearInterval(audioIntervalId);
       for (const audio of audios) {
         audio.stop();
       }
     }
+
     btnStart.addEventListener("click", () => void start());
     btnStop.addEventListener("click", () => void stop());
+    btnPleaseStop.addEventListener("click", () => void stop());
   </script>
 </html>
