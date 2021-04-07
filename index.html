@@ -151,10 +151,9 @@
         clearInterval(audioIntervalId);
       }
       audioIntervalId = setInterval(() => {
-        let i = Math.floor(Math.random() * audios.length);
-        if (i === lastPicked) {
-          i = (i + 1) % audios.length;
-        }
+        const i =
+          (lastPicked + 1 + Math.floor(Math.random() * (audios.length - 1))) %
+          audios.length;
         lastPicked = i;
         audios[i].play();
       }, INTERVAL);
