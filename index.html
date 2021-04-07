@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        background: #d5d5d5;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="btnStart">Make it start</button>
+    <button id="btnStop">Make it stop</button>
+  </body>
+
+  <script>
+    // Multiple `Audio` with a single source, for maximum concurrent goodness.
+    class MultiBufferedAudio {
+      constructor(src, n = 2) {
+        if (n <= 0) throw new Error(`n <= 0: ${n}`);
+        this._audios = Array(n)
+          .fill()
+          .map(() => new Audio(src));
+        this._current = 0;
+      }
+      play() {
+        const audio = this._audios[this._current];
+        audio.currentTime = 0;
+        audio.play();
+        audio.volume = Math.random() * 0.4 + 0.6;
+        this._current = (this._current + 1) % this._audios.length;
+      }
+      stop() {
+        for (const audio of this._audios) {
+          audio.pause();
+        }
+      }
+    }
+
+    const srcs = [
+      "./sounds/lamassu01.m4a",
+      "./sounds/lamassu02.m4a",
+      "./sounds/lamassu03.m4a",
+    ];
+    const audios = srcs.map((src) => new MultiBufferedAudio(src));
+    let lastPicked = 0; // index of last audio played, to avoid back-to-back plays
+
+    const INTERVAL = 650;
+    let intervalId = null;
+
+    function start() {
+      if (intervalId != null) {
+        clearInterval(intervalId);
+      }
+      intervalId = setInterval(() => {
+        let i = Math.floor(Math.random() * audios.length);
+        if (i === lastPicked) {
+          i = (i + 1) % audios.length;
+        }
+        lastPicked = i;
+        audios[i].play();
+      }, INTERVAL);
+    }
+    function stop() {
+      clearInterval(intervalId);
+      for (const audio of audios) {
+        audio.stop();
+      }
+    }
+    btnStart.addEventListener("click", () => void start());
+    btnStop.addEventListener("click", () => void stop());
+  </script>
+</html>
